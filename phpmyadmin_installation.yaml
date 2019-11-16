@@ -1,0 +1,66 @@
+- hosts: webservers
+  become: yes
+  become_method: sudo
+  vars:
+    LARAVEL_PROJECT_ROOT: "/var/www/trantech_staging/trantech"
+    WEBSERVER_USER: "www-data"
+    WEBSERVER_GROUP: "www-data"
+    UBUNTU_USER: "root"
+    PHPMYADMIN_VER: "4.9.1"
+  tasks:
+    - name: "Create phpmyadmin directory"
+      file:
+        path: /usr/share/phpmyadmin
+        state: directory
+
+    - name: "Download phpmyadmin source code (english)"
+      get_url:
+        url: https://files.phpmyadmin.net/phpMyAdmin/{{PHPMYADMIN_VER}}/phpMyAdmin-{{PHPMYADMIN_VER}}-english.tar.gz
+        dest: /usr/share/phpMyAdmin-{{PHPMYADMIN_VER}}-english.tar.gz
+
+    - name: "Extract phpmyadmin source code"
+      unarchive:
+        src: /usr/share/phpMyAdmin-{{PHPMYADMIN_VER}}-english.tar.gz
+        dest: /usr/share
+        remote_src: yes
+
+#    - name: "Extract phpmyadmin source code"
+#      command: tar zxf phpMyAdmin-{{PHPMYADMIN_VER}}-english.tar.gz
+
+    - name: "Copy over phpmyadmin source code"
+      shell: cp -r /usr/share/phpMyAdmin-{{PHPMYADMIN_VER}}-english/* /usr/share/phpmyadmin/
+
+    - name: "Create tmp/ directory"
+      file:
+        path: /usr/share/phpmyadmin/tmp
+        state: directory
+
+    - name: "Create config.inc.php file"
+      copy:
+       src: /usr/share/phpmyadmin/config.sample.inc.php
+       dest: /usr/share/phpmyadmin/config.inc.php
+       remote_src: yes
+
+    - name: "Add blowfish_secret"
+      replace:
+        path: /usr/share/phpmyadmin/config.inc.php
+        regexp: "$cfg[\'blowfish_secret\'] = \'\'"
+        replace: "$cfg[\'blowfish_secret\'] = \'H2OxcGXxflSd8JwrwVlh6KW6s2rER63i\'"
+
+    - name: "Upload phpmyadmin.conf to remote apache2 conf"
+      copy:
+        src: ./files/phpmyadmin.conf
+        dest: /etc/apache2/conf-enabled/phpmyadmin.conf
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: "Setup permission for phpmyadmin/ directory"
+      file:
+        path: /usr/share/phpmyadmin
+        owner: www-data
+        group: www-data
+        recurse: yes
+
+    - name: "Restart apache2"
+      command: systemctl restart apache2
