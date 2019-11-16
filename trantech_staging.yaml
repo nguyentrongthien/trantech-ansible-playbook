@@ -1,0 +1,103 @@
+- hosts: webservers
+  become: yes
+  become_method: sudo
+  vars:
+    DOCUMENT_ROOT: "/var/www/trantech_staging"
+    WEBSERVER_USER: "www-data"
+    WEBSERVER_GROUP: "www-data"
+    UBUNTU_USER: "root"
+    GIT_PWD: "cavuhoca"
+  tasks:
+# TO-DO create site conf for trantech_staging
+    - name: "Create trantech_staging/ directory"
+      file:
+        path: "{{DOCUMENT_ROOT}}"
+        state: directory
+
+    - name: Pull trantech repository
+      git:
+        repo: "https://s3426515:{{GIT_PWD}}@bitbucket.org/s3426515/trantech.git"
+        dest: "{{DOCUMENT_ROOT}}"
+        clone: yes
+
+    - name: Create .env file
+      copy:
+        src: "{{DOCUMENT_ROOT}}/.env.example"
+        dest: "{{DOCUMENT_ROOT}}/.env"
+        remote_src: yes
+        force: no
+
+    - name: Set .env variables
+      lineinfile:
+        path: "{{DOCUMENT_ROOT}}/.env"
+        regexp: "^{{item.key}}="
+        line: "{{item.key}}={{item.value}}"
+        state: present
+        backrefs: yes
+      loop:
+        - { key: 'APP_NAME', value: 'Laravel' }
+        - { key: 'APP_ENV', value: 'staging' }
+        - { key: 'APP_DEBUG', value: 'true' }
+        - { key: 'APP_LOG', value: 'single' }
+        - { key: 'LOG_CHANNEL', value: 'single' }
+        - { key: 'DB_DATABASE', value: 'trantech_admn' }
+        - { key: 'DB_USERNAME', value: 'master' }
+        - { key: 'DB_PASSWORD', value: '123' }
+        - { key: 'QUEUE_DRIVER', value: 'database' }
+        - { key: 'MAIL_DRIVER', value: 'smtp' }
+        - { key: 'MAIL_HOST', value: 'smtp.office365.com' }
+        - { key: 'MAIL_PORT', value: '587' }
+        - { key: 'MAIL_USERNAME', value: 'donotreply@trantechsecurity.com.au' }
+        - { key: 'MAIL_PASSWORD', value: "{{MAIL_PWD}}" }
+        - { key: 'MAIL_ENCRYPTION', value: 'tls' }
+        - { key: 'MAIL_FROM_ADDRESS', value: 'donotreply@trantechsecurity.com.au' }
+        - { key: 'MAIL_FROM_NAME', value: 'Trantech Team' }
+        - { key: 'PUSHER_APP_ID', value: "{{PUSHER_APP_ID}}" }
+        - { key: 'PUSHER_APP_KEY', value: "{{PUSHER_APP_KEY}}" }
+        - { key: 'PUSHER_APP_SECRET', value: "{{PUSHER_APP_SECRET}}" }
+        - { key: 'BROADCAST_DRIVER', value: 'pusher' }
+        - { key: 'WEBSOCKET_HOST', value: "{{WEBSOCKET_HOST}}" }
+
+    - name: Create database 'trantech_admn'
+      mysql_db:
+        login_user: "root"
+        login_password: "{{MYSQL_ROOT_PWD}}"
+        db: 'trantech_admn'
+        state: 'present'
+
+    - name: Create database user 'master'
+      mysql_user:
+        login_user: "root"
+        login_password: "{{MYSQL_ROOT_PWD}}"
+        name: master
+        password: 123
+        priv: '*.*:ALL'
+        state: present
+
+    - name: Install composer dependencies
+      shell: "php {{DOCUMENT_ROOT}}/composer.phar install"
+      args:
+        chdir: "{{DOCUMENT_ROOT}}"
+        
+    - name: Check artisan command
+      shell: "php {{DOCUMENT_ROOT}}/artisan migrate:status"
+      register: artisan
+
+    - debug: var=artisan.stdout_lines
+
+    - name: Change owner and group and permission of folders
+      file:
+        path: "{{DOCUMENT_ROOT}}"
+        owner: "{{WEBSERVER_USER}}"
+        group: "{{WEBSERVER_GROUP}}"
+        mode: '0755'
+        recurse: yes
+        state: directory
+
+    - name: Grant FTP for uploading and working with files
+      command: usermod -a -G {{WEBSERVER_USER}} {{UBUNTU_USER}}
+
+    - name: Set file permission to 644
+      command: find {{DOCUMENT_ROOT}} -type f -exec chmod 644 {} \;
+
+

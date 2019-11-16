@@ -42,10 +42,10 @@
        remote_src: yes
 
     - name: "Add blowfish_secret"
-      replace:
+      lineinfile:
         path: /usr/share/phpmyadmin/config.inc.php
-        regexp: "$cfg[\'blowfish_secret\'] = \'\'"
-        replace: "$cfg[\'blowfish_secret\'] = \'H2OxcGXxflSd8JwrwVlh6KW6s2rER63i\'"
+        regexp: "\\$cfg\\['blowfish_secret'\\]"
+        line: "$cfg['blowfish_secret'] = 'H2OxcGXxflSd8JwrwVlh6KW6s2rER63i';"
 
     - name: "Upload phpmyadmin.conf to remote apache2 conf"
       copy:
