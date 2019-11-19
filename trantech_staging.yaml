@@ -3,12 +3,30 @@
   become_method: sudo
   vars:
     DOCUMENT_ROOT: "/var/www/trantech_staging"
+    DIRECTORY: "/var/www/trantech_staging/"
+    ALIAS_ROUTE: "/staging"
     WEBSERVER_USER: "www-data"
     WEBSERVER_GROUP: "www-data"
     UBUNTU_USER: "root"
-    GIT_PWD: "cavuhoca"
+    HTTP_PORT: 80
+    DOMAIN: "trantechsecurity.com.au"
+    APP_URL: "http://165.22.250.85"
   tasks:
 # TO-DO create site conf for trantech_staging
+
+    - name: Make sure trantech-staging.conf is disabled
+      command: a2dissite trantech-staging
+      args:
+        removes: /etc/apache2/sites-enabled/trantech-staging.conf
+
+    - name: Make sure default conf site is disabled
+      command: a2dissite 000-default
+      args:
+        removes: /etc/apache2/sites-enabled/000-default.conf
+
+    - name: Create new site conf for trantech_staging
+      template: src=./files/virtual-host.conf dest=/etc/apache2/sites-available/trantech-staging.conf
+
     - name: "Create trantech_staging/ directory"
       file:
         path: "{{DOCUMENT_ROOT}}"
@@ -35,6 +53,7 @@
         state: present
         backrefs: yes
       loop:
+        - { key: 'APP_URL', value: "{{APP_URL}}" }
         - { key: 'APP_NAME', value: 'Laravel' }
         - { key: 'APP_ENV', value: 'staging' }
         - { key: 'APP_DEBUG', value: 'true' }
@@ -99,5 +118,32 @@
 
     - name: Set file permission to 644
       command: find {{DOCUMENT_ROOT}} -type f -exec chmod 644 {} \;
+        
+    - name: Create app key
+      shell: "php {{DOCUMENT_ROOT}}/artisan key:generate"
+
+    - name: Create data for cache directory
+      file:
+        path: "{{DOCUMENT_ROOT}}/storage/framework/cache/data"
+        owner: "{{WEBSERVER_USER}}"
+        group: "{{WEBSERVER_GROUP}}"
+        mode: '0755'
+        recurse: yes
+        state: directory
+        
+        
+    - name: Flush all cached settings and configs
+      shell: "php {{DOCUMENT_ROOT}}/artisan optimize:clear"
+
+    - name: Enable trantech-staging site and restart apache2
+      command: a2ensite trantech-staging
+      args:
+        creates: /etc/apache2/sites-enabled/trantech-staging.conf
+      notify:
+        - restart apache2
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
 
 

@@ -64,5 +64,13 @@
         state: present
         backrefs: yes
 
+    - name: Set php upload_max_filesize
+      lineinfile:
+        path: /etc/php/{{PHP_VER}}/apache2/php.ini
+        regexp: '^upload_max_filesize'
+        line: 'upload_max_filesize=200M'
+        state: present
+        backrefs: yes
+
     - name: "Restart apache2"
       command: systemctl restart apache2
