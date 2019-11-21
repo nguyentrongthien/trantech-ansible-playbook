@@ -2,7 +2,9 @@
   become: yes
   become_method: sudo
   vars:
-    DOCUMENT_ROOT: "/var/www/trantech_staging"
+    VH_DOC_ROOT: "/var/www/trantech_staging/"
+    VH_DIRECTORY: "/var/www/trantech_staging/"
+    DOCUMENT_ROOT: "/var/www/trantech_staging/trantech"
     DIRECTORY: "/var/www/trantech_staging/"
     ALIAS_ROUTE: "/staging"
     WEBSERVER_USER: "www-data"
@@ -27,7 +29,7 @@
     - name: Create new site conf for trantech_staging
       template: src=./files/virtual-host.conf dest=/etc/apache2/sites-available/trantech-staging.conf
 
-    - name: "Create trantech_staging/ directory"
+    - name: "Create {{DOCUMENT_ROOT}} directory"
       file:
         path: "{{DOCUMENT_ROOT}}"
         state: directory
@@ -122,14 +124,20 @@
     - name: Create app key
       shell: "php {{DOCUMENT_ROOT}}/artisan key:generate"
 
-    - name: Create data for cache directory
+    - name: Make sure necessary directories are present
       file:
-        path: "{{DOCUMENT_ROOT}}/storage/framework/cache/data"
+        path: "{{item}}"
         owner: "{{WEBSERVER_USER}}"
         group: "{{WEBSERVER_GROUP}}"
         mode: '0755'
         recurse: yes
         state: directory
+      loop:
+        - "{{DOCUMENT_ROOT}}/storage/framework/cache/data"
+        - "{{DOCUMENT_ROOT}}/public/img/uploads/statements"
+        - "{{DOCUMENT_ROOT}}/public/img/uploads/estimates"
+        - "{{DOCUMENT_ROOT}}/public/img/uploads/invoices"
+        - "{{DOCUMENT_ROOT}}/public/img/uploads/salesorders"
         
         
     - name: Flush all cached settings and configs

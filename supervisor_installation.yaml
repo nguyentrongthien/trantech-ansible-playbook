@@ -2,9 +2,9 @@
   become: yes
   become_method: sudo
   vars:
-    WORKER_LOG: "/var/www/trantech_staging/storage/logs/worker.log"
+    WORKER_LOG: "/var/www/trantech_staging/trantech/storage/logs/worker.log"
     WORKER_NAME: "laravel-worker"
-    ARTISAN: "/var/www/trantech_staging/artisan"
+    ARTISAN: "/var/www/trantech_staging/trantech/artisan"
     WEBSERVER_USER: "www-data"
     WEBSERVER_GROUP: "www-data"
     UBUNTU_USER: "root"
