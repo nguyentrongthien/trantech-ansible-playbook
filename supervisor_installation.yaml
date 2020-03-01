@@ -2,9 +2,9 @@
   become: yes
   become_method: sudo
   vars:
-    WORKER_LOG: "/var/www/trantech_staging/trantech/storage/logs/worker.log"
+    WORKER_LOG: "/var/www/trantech_production/trantech/storage/logs/worker.log"
     WORKER_NAME: "laravel-worker"
-    ARTISAN: "/var/www/trantech_staging/trantech/artisan"
+    ARTISAN: "/var/www/trantech_production/trantech/artisan"
     WEBSERVER_USER: "www-data"
     WEBSERVER_GROUP: "www-data"
     UBUNTU_USER: "root"
@@ -22,7 +22,7 @@
     - name: "Create {{WORKER_NAME}} conf"
       template:
         src: ./files/supervisor-conf/supervisor-worker-template.conf
-        dest: "{{SUPERVISOR_CONF_PATH}}/trantech-staging-worker.conf"
+        dest: "{{SUPERVISOR_CONF_PATH}}/trantech-production-worker.conf"
 
     - name: Reread supervisor conf
       shell: supervisorctl reread

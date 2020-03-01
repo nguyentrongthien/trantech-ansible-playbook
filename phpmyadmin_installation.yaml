@@ -63,3 +63,9 @@
 
     - name: "Restart apache2"
       command: systemctl restart apache2
+
+# TODO - allow only root to access phpmyadmin, add this after the i++
+# $cfg['Servers'][$i]['AllowDeny']['order'] = 'explicit';
+# $cfg['Servers'][$i]['AllowDeny']['rules'] = [
+#    'allow root from all'
+# ];
